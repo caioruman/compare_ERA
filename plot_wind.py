@@ -207,7 +207,7 @@ def calc_mean_gem(period, folder_gem, exp, datai, dataf):
     i = 0
     for y in range(datai, dataf+1):
         for m in months:
-            file_gem = "{0}/Diagnostics/{1}_{2}{3:02d}/dm*".format(folder_gem, exp, y, m)
+            file_gem = "{0}/Samples/{1}_{2}{3:02d}/dm*".format(folder_gem, exp, y, m)
             arqs = glob(file_gem)
 
             for f in arqs:
