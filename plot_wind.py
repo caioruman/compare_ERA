@@ -104,16 +104,12 @@ def main():
 #        file_daymet_tmin = "{0}/Daymet-tmin-monthly_{1}_{2}-{3}_PanCanada.nc".format(folder_daymet, per, datai, dataf)
         #print(file_gem)   
 
-        data_gem, lons2d, lats2d = calc_mean_gem('TT', 'dm', per, folder_gem, exp, datai, dataf)
+        data_uu, data_vv, data_uv, lons2d, lats2d = calc_mean_gem(per, folder_gem, exp, datai, dataf)
 #        data_gem_tmax, lons2d, lats2d = calc_mean_gem('T9', 'pm', per, folder_gem, exp, datai, dataf)
 #        data_gem_tmin, lons2d, lats2d = calc_mean_gem('T5', 'pm', per, folder_gem, exp, datai, dataf)
 
         #data_gem = data_gem[-1,:,:]
-        data_gem_tmax = data_gem_tmax - 273.15
-        data_gem_tmin = data_gem_tmin - 273.15
-        #print(data_gem_tmin.shape)
-        #print(data_gem_tmax - data_gem_tmin)
-        #sys.exit()
+        
 
 #        print(file_era)
 #        print(file_daymet_tmin)
@@ -129,7 +125,7 @@ def main():
         #for var in varlist:
 
         #data_era = np.transpose(np.squeeze(arq_era.variables['msl'][:]))/100 #- 273.15
-        data_era = np.transpose(np.squeeze(arq_era.variables['si10'][:]))
+        data_era_uv = np.transpose(np.squeeze(arq_era.variables['si10'][:]))
         data_era_uu = np.transpose(np.squeeze(arq_era.variables['u10'][:]))
         data_era_vv = np.transpose(np.squeeze(arq_era.variables['v10'][:]))
 
@@ -172,17 +168,17 @@ def main():
         #data = data*(-1)
         cbar_l = "\N{DEGREE SIGN}C"                                
         
-        data = data_tmax - data_gem_tmax
+        data = data_uu - data_era_uu
         figName = "TT_ERA_{0}_{1}_UU".format(exp, per)
 
         plotMaps_pcolormesh(data, figName, values, cmap, lons2d, lats2d, 'TT', cbar_l)
 
-        data = data_tmin - data_gem_tmin
+        data = data_vv - data_era_vv
         figName = "TT_ERA_{0}_{1}_VV".format(exp, per)
 
         plotMaps_pcolormesh(data, figName, values, cmap, lons2d, lats2d, 'TT', cbar_l)
 
-        data = data_era - data_gem
+        data = data_uv - data_era_uv
         figName = "TT_ERA_{0}_{1}_UV".format(exp, per)
 
         plotMaps_pcolormesh(data, figName, values, cmap, lons2d, lats2d, 'TT', cbar_l)
@@ -193,7 +189,7 @@ def main():
         #arq_daymet_tmax.close()
         #arq_daymet_tmin.close()
 
-def calc_mean_gem(var, file_type, period, folder_gem, exp, datai, dataf):
+def calc_mean_gem(period, folder_gem, exp, datai, dataf):
 
     if period == "DJF":
         months = [12, 1, 2]
@@ -204,31 +200,36 @@ def calc_mean_gem(var, file_type, period, folder_gem, exp, datai, dataf):
     elif period == "SON":
         months = [9, 10, 11]
 
-    vars = []
+    var_uu = []
+    var_vv = []
+    var_uv = []
     i = 0
     for y in range(datai, dataf+1):
         for m in months:
-            file_gem = "{0}/Diagnostics/{1}_{2}{3:02d}/{4}{1}_{2}{3:02d}_moyenne".format(folder_gem, exp, y, m, file_type)
-            folder_gem = 
-            r = RPN(file_gem)
-            if file_type == "dm":
-                vars.append(np.squeeze(r.variables[var][:])[-1,:,:])
-            else:
-                vars.append(np.squeeze(r.variables[var][:]))
-            #a = np.squeeze(r.variables[var][:])[-1,:,:]
-            #print(a.shape)
-            #sys.exit()
-            if i == 0:
-                lons2d, lats2d = r.get_longitudes_and_latitudes_for_the_last_read_rec()
-                i += 1
-            r.close()
-            #print(file_gem)
-            #sys.exit()
-    
-    vars = np.array(vars)
-    data = np.mean(vars, axis=0)
+            file_gem = "{0}/Diagnostics/{1}_{2}{3:02d}/dm*".format(folder_gem, exp, y, m)
+            arqs = glob(file_gem)
 
-    return data, lons2d, lats2d
+            for f in arqs:
+                r = RPN(f)
+
+                uu = np.squeeze(r.variables['UU'][:])[-1,:,:]/1.944
+                vv = np.squeeze(r.variables['VV'][:])[-1,:,:]/1.944
+                uv = np.sqrt(np.power(uu, 2) + np.power(vv, 2))
+
+                var_uu.append(uu)
+                var_uu.append(vv)
+                var_uu.append(uv)
+
+                if i == 0:
+                    lons2d, lats2d = r.get_longitudes_and_latitudes_for_the_last_read_rec()
+                    i += 1
+                r.close()
+    
+    var_uu = np.array(var_uu)
+    var_vv = np.array(var_vv)
+    var_uv = np.array(var_uv)
+
+    return np.mean(var_uu, axis=0), np.mean(var_vv, axis=0), np.mean(var_uv, axis=0), lons2d, lats2d
 
 if __name__ == "__main__":
     main()
